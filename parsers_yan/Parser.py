@@ -27,15 +27,24 @@ headers2 = {
         'sec-ch-ua-platform': "Windows"
     }
 
-url='https://dzen.ru/news?issue_tld=ru'
+
+headers = {
+    'Accept-Encoding': 'gzip, deflate, sdch',
+    'Accept-Language': 'en-US,en;q=0.8',
+    'Upgrade-Insecure-Requests': '1',
+    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Cache-Control': 'max-age=0',
+    'Connection': 'keep-alive',
+}
+
+url = 'https://dzen.ru/news?issue_tld=ru'
 
 class Parser:
 
      json_articles_row = []
-     json_article_lemmatized = []
-     all_text = []
-     res = []
-     check_list = ('игра', "сыграть", "проиграть", "поиграть", "отыграть", "переиграть")
+     #check_list = ('игра', "сыграть", "проиграть", "поиграть", "отыграть", "переиграть")
+     index = 1
 
      def get_links_cards(self, main_url, headers):
 
@@ -54,119 +63,31 @@ class Parser:
 
          retry_options = ExponentialRetry(attempts=5)
          retry_client = RetryClient(raise_for_status=False, retry_options=retry_options, client_session=session, start_timeout=0.5)
-
+         ua = UserAgent()
+         fake_ua = {'user-agent': ua.random}
          async with retry_client.get(url=link, headers=headers2) as response:
              if response.ok:
 
                  resp = await response.text()
                  link_card = BeautifulSoup(resp, 'lxml')
 
-                 # Получаем текст заголовка + лемматизируем
+                 # Получаем текст заголовка
                  header_article = link_card.find('a', class_='mg-story__title-link')
 
-                 # Получаем основной текст статьи + лемматизируем
+
+                 # Получаем основной текст статьи
                  body_article = link_card.find('div', class_='mg-snippets-group__body').find_all(class_='mg-snippet__text')
                  text = [i.text for i in body_article]
 
-                 #Сохраняем тексты в два списка: в одном будут сырые тексты, вторые для лемматизации
+                 #Сохраняем тексты в списка, чтобы потом сохранить в файл в формате json
 
                  self.json_articles_row.append({
+                     'index' : self.index,
                      'title' : header_article.text,
                      'body' : text
                  })
 
-                 self.json_article_lemmatized.append({
-                     'title': header_article.text,
-                     'body': text
-                 })
-
-     def parts_speech(self):
-         """"Здесь определяется часть речи"""""
-         pass
-
-     def take_nouns_only(self):
-         """"Здесь отбираются тольчко существительные"""""
-         pass
-
-     def lemmatize_texts(self, json_articles):
-          # Лемматизируем заголовок статьи
-          m = Mystem()
-          #print(json_articles)
-          for text in json_articles:
-              #print('Переменная text из функции lemmatize_texts', text['title'])
-              lemm_header_article = m.lemmatize(text['title'])
-              lemm_header_words = [word for word in lemm_header_article if word.isalpha()]
-              text['title'] = lemm_header_words
-
-          for text in json_articles:
-
-              #print('Переменная lemm_body', body)
-              lemm_body = [m.lemmatize(sentence) for sentence in text['body']]
-              text['body'] = lemm_body
-
-          for text in json_articles:
-              lemmatized_sentences = []
-              for sentence in text['body']:
-                  lst = [word for word in sentence if word.isalpha()]
-                  lemmatized_sentences.append(lst)
-              text['body'] = lemmatized_sentences
-
-          return json_articles
-
-     def check_lemmatized_texts(self, json_articles):
-         print('Переменная json_articles из функции check_lemmatized_texts', json_articles)
-         print('Длина json_articles из функции check_lemmatized_texts', len(json_articles))
-         for text in json_articles:
-             for check_word in self.check_list:
-                  if (check_word in text['title']) or (check_word in text['body']):
-                      text['body'].append(text['title'])
-
-
-                      self.all_text.append(text['body'])
-
-         print('Переменная self.all_text', self.all_text)
-         return self.all_text
-
-     def make_onedim_array(self, list_article_words):
-
-         """"Функция получает двумерный массив из слов и превращает в одномерный"""""
-
-         result = []
-
-         for text in list_article_words:
-             for sentence in text:
-                 for word in sentence:
-                     result.append(word)
-         print('Одномерный массив из функции make_onedim_array', result)
-         return result
-
-     def count_words(self, list_words):
-         print("Переменная list_words, которая поступает в функцию count_words", list_words)
-         """Функция считает топ 50 наиболее частотных слов"""""
-
-         dct_words = {}
-
-         for word in list_words:
-             if word in dct_words:
-                 dct_words[word] += 1
-             else:
-                 dct_words[word] = 1
-
-         # сортировка словаря по убыванию
-         dct_sorted = sorted(dct_words.items(), key=lambda x: x[1], reverse=True)
-
-         top_words = [word[0] for word in dct_sorted]
-         print('Переменная top_words', top_words)
-         if len(top_words) >= 50:
-             top_words_text = ' '.join(top_words[:50])
-             print('Переменная top_words_text, если > 50', top_words_text)
-             return top_words_text
-         elif 50 < len(top_words) > 0 :
-             top_words_text = ' '.join(top_words)
-             print('Переменная, если < 50', top_words_text)
-             return top_words_text
-         elif len(top_words) <= 0:
-             return 'Нет текстов со словом игра('
+                 self.index += 1
 
      async def main(self, list_link):
          ua = UserAgent()
@@ -175,26 +96,13 @@ class Parser:
          async with aiohttp.ClientSession(headers=fake_ua) as session:
              tasks = []
              for link in list_link:
-                 task = asyncio.create_task(self.get_words(session=session, link=link, headers=headers2))
+                 task = asyncio.create_task(self.get_words(session=session, link=link, headers=fake_ua))
                  tasks.append(task)
              await asyncio.gather(*tasks)
 
-
-             articles = self.lemmatize_texts(self.json_article_lemmatized)
-             texts_twodim_array = self.check_lemmatized_texts(articles)
-             texts_onedim_array = self.make_onedim_array(texts_twodim_array)
-             top_words = self.count_words(texts_onedim_array)
-
-             print("Длина всего списка с текстами", len(self.json_articles_row))
-
-         with open(r'top_words.txt', 'w', encoding='utf-8') as file_txt:
-             file_txt.write(top_words)
-
+         # Здесь сохраняются тексты
          with open(r'texts_row.json', 'w', encoding='utf-8') as file_json:
              json.dump(self.json_articles_row, file_json, indent=4, ensure_ascii=False)
-
-         with open(r'texts_lemmatized.json', 'w', encoding='utf-8') as file_json:
-             json.dump(self.json_article_lemmatized, file_json, indent=4, ensure_ascii=False)
 
      def __call__(self, url_yandex, headers, *args, **kwargs):
          links = self.get_links_cards(url_yandex, headers)
