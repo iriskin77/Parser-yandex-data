@@ -89,7 +89,7 @@ class Parser:
              await asyncio.gather(*tasks)
 
          # Здесь сохраняются тексты
-         with open(r'texts_row.json', 'w', encoding='utf-8') as file_json:
+         with open(r'C:\Parser_yandex\texts_row.json', 'w', encoding='utf-8') as file_json:
              json.dump(self.json_articles_row, file_json, indent=4, ensure_ascii=False)
 
      def __call__(self, url_yandex, headers, *args, **kwargs):
