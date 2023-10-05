@@ -4,28 +4,15 @@ from nltk import pos_tag
 
 class Process:
 
-    # def parts_speech_tag(self, json_articles):
-    #     """"Здесь определяется часть речи"""""
-    #
-    #     for text in json_articles:
-    #         t = pos_tag(text['title'].split(), lang="rus")
-    #         text['title'] = t
-    #
-    #         for body in text['body']:
-    #             for sentence in body:
-    #                 pos_tag(sentence.split(), lang="rus")
-    #
-    #     print(json_articles)
-    #     return json_articles
-    #
-    # def take_nouns_only(self):
-    #     """"Здесь отбираются тольчко существительные"""""
-    #     pass
 
     json_texts_sorted = []
     words = []
+    index = 1
+
     def lemmatize_texts(self, json_articles):
         """"Принимает на вход json файл с ключами title и body, далее проводит лемматизацию"""""
+
+        print("Функция lemmatize_texts начала работу")
         # Лемматизируем заголовок статьи
         m = Mystem()
         # print(json_articles)
@@ -51,16 +38,20 @@ class Process:
         return json_articles
 
     def check_lemmatized_texts(self, json_articles):
-        print('Переменная json_articles из функции check_lemmatized_texts', json_articles)
-        print('Длина json_articles из функции check_lemmatized_texts', len(json_articles))
+        print("Функция check_lemmatized_texts начала работу")
         for text in json_articles:
 
                 if ('игра' in text['title']) or ('игра' in text['body']):
+
                     self.json_texts_sorted.append({
-                        'title' : text['title'],
-                        'body' : text['body']
+                        'index': self.index,
+                        'title': text['title'],
+                        'body': text['body']
                     })
-                    self.words.append(text['body'].append(text['title']))
+
+                    self.index += 1
+                    text['body'].append(text['title'])
+                    self.words.append(text['body'])
 
         #print('Переменная self.all_text', self.all_text)
         print('Функция check_lemmatized_texts завершилась', self.words)
@@ -68,8 +59,9 @@ class Process:
 
     def make_onedim_array(self, list_article_words):
 
-        """"Функция получает трехмерный массив из слов и превращает в одномерный"""""
+        """"Функция получает трехмерный массив из слов и превращает в одномерный массив из слов"""""
 
+        print("Функция make_onedim_array начала работу")
         result = []
 
         for text in list_article_words:
@@ -80,9 +72,10 @@ class Process:
         return result
 
     def count_words(self, list_words):
-        print("Переменная list_words, которая поступает в функцию count_words", list_words)
+
         """Функция считает топ 50 наиболее частотных слов"""""
 
+        print("Функция count_words начала работу")
         dct_words = {}
 
         for word in list_words:
@@ -95,7 +88,7 @@ class Process:
         dct_sorted = sorted(dct_words.items(), key=lambda x: x[1], reverse=True)
 
         top_words = [word[0] for word in dct_sorted]
-        print('Переменная top_words', top_words)
+
         if len(top_words) >= 50:
             top_words_text = ' '.join(top_words[:50])
             print('Переменная top_words_text, если > 50', top_words_text)
@@ -110,6 +103,10 @@ class Process:
 if __name__ == '__main__':
 
     obj = Process()
+
+    """"Открываем файл с изначальными (необработанными) текстами, лемматизируем, выбираем из них те, в которых есть слова игра. 
+    В один файл (top_words) кладем топ частотных слов из этих текстов, 
+    в другой файл (texts_sorted) кладем лемматизированные тексты, в которых есть слово игра"""""
 
     with open(r'C:\Parser_yandex\texts_row.json', 'r', encoding='utf-8') as file_json, \
             open(r'C:\Parser_yandex\words.json', 'w', encoding='utf-8') as top_words, \
@@ -126,6 +123,9 @@ if __name__ == '__main__':
         # файл с отсортированными лемматизированными текстами текстами
         json.dump(obj.json_texts_sorted, texts_sorted, indent=4, ensure_ascii=False)
 
+    """Сравниваем лемматизированные тексты со словом игра из файла  texts_sorted со всеми изначальными (необработанными) текстами.
+    Если есть совпадение, значит, в изначальном (необработанном) тексте есть слово игра. Кладем такой текст в отдельный файл (texts_games)"""
+
     with open(r'C:\Parser_yandex\texts_games.json', 'w', encoding='utf-8') as texts_games, \
         open(r'C:\Parser_yandex\texts_sorted.json', 'r', encoding='utf-8') as texts_sorted, \
         open(r'C:\Parser_yandex\texts_row.json', 'r', encoding='utf-8') as texts_row:
@@ -135,7 +135,7 @@ if __name__ == '__main__':
         for row_text in data_row:
             for sorted_text in data_sorted:
                 if row_text['index'] == sorted_text['index']:
-                    texts_games.write(row_text)
+                    json.dump(row_text, texts_games, indent=4, ensure_ascii=False)
 
 
 
