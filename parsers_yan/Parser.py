@@ -47,7 +47,7 @@ class Parser:
 
      async def get_texts (self, session, link, headers):
 
-         """"Функция собирает все слова со всех новостей в двумерный массив, который определен как res в классе Parser"""""
+         """"Функция собирает заголовок текста и основное содержание и кладет в словарь с ключами title и body"""""
 
          retry_options = ExponentialRetry(attempts=5)
          retry_client = RetryClient(raise_for_status=False, retry_options=retry_options, client_session=session, start_timeout=0.5)
