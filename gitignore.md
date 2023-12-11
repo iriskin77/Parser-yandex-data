@@ -1,9 +1,3 @@
-/.idea
-/Lib
-/Scripts
-/__pycache__
-*.cfg
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
