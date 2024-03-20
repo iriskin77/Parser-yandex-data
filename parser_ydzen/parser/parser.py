@@ -98,7 +98,6 @@ class ParsGroupCategories(ManageParser,
             self.logger.critical(f"Fn: {self.start_parser.__name__}. Failed to work the parser. Message error: {ex}")
 
 
-
     def execute(self) -> None:
         super().execute()
 
@@ -108,83 +107,4 @@ class ParsGroupCategories(ManageParser,
         for job in self.scheduler.get_jobs():
             job.modify(next_run_time=datetime.now())
 
-        self.scheduler.start()
-
-
-class ParsSingleCategory(ManageParser,
-                         CollectLinksMixin,
-                         RetrieveArticleInfoMixin):
-
-    command: str = 'fetch_category'
-    url_main_page: str = 'https://dzen.ru/news?issue_tld=ru'
-    res_dict: dict = {}
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.database = Database()
-        self.scheduler = BackgroundScheduler()
-        self.logger = init_logger(__name__)
-
-    def retrieve_category(self, url_main_page, category: str) -> dict:
-        try:
-            res_cat: dict = {}
-            res = self._collect_links_categories(main_url=url_main_page, headers=headers)
-            if category is not None:
-                res_cat[category] = res[category]
-                return res_cat
-        except Exception as ex:
-            self.logger.critical(f"Fn: {self.retrieve_category.__name__}. Failed to retrieve the category. Message error: {ex}")
-
-    def retrieve_links_card(self, categories_links: dict) -> dict:
-        try:
-            res = self._collect_links_cards(categories_links, headers=headers)
-            return res
-        except Exception as ex:
-            self.logger.critical(f"Fn: {self.retrieve_links_card.__name__}. Failed to retrieve links from the card. Message error: {ex}")
-
-    @classmethod
-    def add_argument(cls, parser: argparse.ArgumentParser):
-        parser.add_argument(
-            '--category',
-            type=str,
-            help='collecting a single category. Dedault: Главное'
-        )
-
-        parser.add_argument(
-            '--timer_parse',
-            default=1,
-            type=int,
-            help='set timer in hours. Default - an hour',
-        )
-
-    async def collect_info_article(self, dct_section_link):
-        ua = UserAgent()
-        fake_ua = {'user-agent': ua.random}
-
-        async with aiohttp.ClientSession(headers=headers) as session:
-            tasks = []
-            items = dct_section_link.items()
-            name, links = items[0], items[1]
-            self.res_dict[name] = []
-            for link_article in links:
-                    task = asyncio.create_task(self.get_info_article(session=session, link_article=link_article, name_section=name, headers=headers))
-                    tasks.append(task)
-            await asyncio.gather(*tasks)
-
-    def start_parser(self) -> None:
-        try:
-            category_parse = self.init_kwargs['category']
-            link_category = self.retrieve_category(url_main_page=self.url_main_page, category=category_parse)
-            links_articles_cards = self.retrieve_links_card(categories_links=link_category)
-            asyncio.run(self.collect_info_article(links_articles_cards))
-            self.database.insert_categories(self.res_dict)
-            self.database.insert_articles(self.res_dict)
-
-        except Exception as ex:
-            self.logger.critical(f"Fn: {self.start_parser.__name__}. Failed to work the parser. Message error: {ex}")
-
-    def execute(self) -> None:
-        super().execute()
-        timer = self.init_kwargs['timer_parse']
-        self.scheduler.add_job(self.start_parser, 'interval', hours=timer)
         self.scheduler.start()

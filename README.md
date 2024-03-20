@@ -25,9 +25,7 @@ it is a cli parser to collect news from yandex dzen
 
   + python manage.py fetch_group --categories Интересное, Екатеринубрг   
 
-+ To parse only one category you should use:
-   
-   + python manage.py fetch_category --category Спорт
+
 
 You can set timer to parse yandex dzen every hour/ten hours/day etc. Default value of the timer is an hour. Use the following options to change the timer --set_timer. For example:
 
